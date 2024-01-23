@@ -1,0 +1,49 @@
+_BASE_: r50.yaml
+MODEL:
+  BACKBONE:
+    NAME: "D2SwinTransformer"
+  SWIN:
+    EMBED_DIM: 128
+    DEPTHS: [2, 2, 18, 2]
+    NUM_HEADS: [4, 8, 16, 32]
+    WINDOW_SIZE: 12
+    APE: False
+    DROP_PATH_RATE: 0.3
+    PATCH_NORM: True
+    PRETRAIN_IMG_SIZE: 384
+  # WEIGHTS: "swin_base_patch4_window12_384_22k.pkl"
+  WEIGHTS: "model/weights/model_final_fa840f.pkl"
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  MASK_FORMER:
+    DEPTH_WEIGHT: 0.0 # Not include depth in matcher
+    # DEPTH_WEIGHT: 5.0
+    DEPTH_RESOLUTION_FULL: False # full resolution vs 1/4 resolution
+    LATENT_LAYERS: 9
+    UNCERTAINTY: False
+    CNN_DEPTH: False # U-Net Depth Decoder
+    TEST:
+      POST_PROCESS: "pixel"
+      # POST_PROCESS: "mask"
+SOLVER:
+  # IMS_PER_BATCH: 32
+  # IMS_PER_BATCH: 8
+  IMS_PER_BATCH: 2
+  AMP:
+    # ENABLED: True
+    ENABLED: False
+  CHECKPOINT_PERIOD: 500
+TEST:
+  EVAL_PERIOD: 500
+INPUT:
+  # MIN_SIZE_TRAIN: !!python/object/apply:eval ["[int(x * 0.1 * 1024) for x in range(5, 21)]"]
+  MIN_SIZE_TRAIN: (512, 768, 1024, 1152, 1216, 1344, 1408, 1536, 1664, 1728, 1856, 1920, 2048)
+  # MIN_SIZE_TRAIN: (1024, 1152, 1216, 1344, 1408, 1536, 1664, 1728, 1856, 1920, 2048)
+  # MIN_SIZE_TRAIN: (1024, 1024)
+  CROP:
+    ENABLED: True
+    # ENABLED: False
+    TYPE: "absolute"
+    # SIZE: (512, 1024)
+    # SIZE: (1024, 2048)
+    SIZE: (256, 512)

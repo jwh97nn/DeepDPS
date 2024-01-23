@@ -1,0 +1,148 @@
+# _BASE_: cityscapes.yaml
+MODEL:
+  META_ARCHITECTURE: "MaskFormer"
+  BACKBONE:
+    FREEZE_AT: 0
+    NAME: "build_resnet_backbone"
+  # WEIGHTS: "detectron2://ImageNetPretrained/torchvision/R-50.pkl"
+  # WEIGHTS: "model/weights/R-50.pkl"
+  WEIGHTS: "output/mask2former/deform2/model_0021999.pth"
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  RESNETS:
+    DEPTH: 50
+    # STEM_TYPE: "basic" # not used
+    STEM_OUT_CHANNELS: 64
+    STRIDE_IN_1X1: False
+    OUT_FEATURES: ["res2", "res3", "res4", "res5"]
+    NORM: "SyncBN" # use syncbn for cityscapes dataset
+    # NORM: "BN"
+    # RES5_MULTI_GRID: [1, 1, 1] # not used
+  SEM_SEG_HEAD:
+    NAME: "MaskFormerHead"
+    IGNORE_VALUE: 255
+    NUM_CLASSES: 19
+    LOSS_WEIGHT: 1.0
+    CONVS_DIM: 256
+    MASK_DIM: 256
+    NORM: "GN"
+    # pixel decoder
+    PIXEL_DECODER_NAME: "MSDeformAttnPixelDecoder"
+    IN_FEATURES: ["res2", "res3", "res4", "res5"]
+    DEFORMABLE_TRANSFORMER_ENCODER_IN_FEATURES: ["res3", "res4", "res5"]
+    COMMON_STRIDE: 4
+    TRANSFORMER_ENC_LAYERS: 6
+  MASK_FORMER:
+    TRANSFORMER_DECODER_NAME: "MultiScaleMaskedTransformerDecoder"
+    TRANSFORMER_IN_FEATURE: "multi_scale_pixel_decoder"
+    DEEP_SUPERVISION: True
+    NO_OBJECT_WEIGHT: 0.1
+    CLASS_WEIGHT: 2.0
+    MASK_WEIGHT: 5.0
+    DICE_WEIGHT: 5.0
+    DEPTH_WEIGHT: 0.0 # Not include depth in matcher
+    # DEPTH_WEIGHT: 5.0
+    HIDDEN_DIM: 256
+    NUM_OBJECT_QUERIES: 100
+    NHEADS: 8
+    DROPOUT: 0.0
+    DIM_FEEDFORWARD: 2048
+    ENC_LAYERS: 0
+    PRE_NORM: False
+    ENFORCE_INPUT_PROJ: False
+    SIZE_DIVISIBILITY: 32
+    DEC_LAYERS: 10 # 9 decoder layers, add one for the loss on learnable query
+    TRAIN_NUM_POINTS: 12544
+    OVERSAMPLE_RATIO: 3.0
+    IMPORTANCE_SAMPLE_RATIO: 0.75
+    # Extra
+    BACKUP_TOKEN: False
+    BACKUP_TOKEN_OUTPUT: False # Use depth_pred outputed by backup token
+    FREEZE_SEMANTIC: False
+    SEMANTIC_GUIDED: False # Semantic guided triplet loss
+    SEMANTIC_GUIDED_WEIGHT: 0.1
+    SEMANTIC_GUIDED_SCALES: [3]
+    DEPTH_GUIDED: False # Depth guided triplet loss
+    DEPTH_GUIDED_WEIGHT: 0.1
+    DEPTH_GUIDED_SCALES: [3]
+    DEPTH_GUIDED_SOURCE: "feature" # 'feature' or 'gt'
+    DEPTH_MAX: 80.0
+    DEPTH_FEATURE: "single" # single: f, else: f+f_res2
+    DEPTH_DECODER: True # Separate Depth pixel_decoder
+    DEPTH_DECODER_NAME: "Deformable" # Deformable/Base
+    # DEPTH_HIDDEN_DIM: 64 # For Separate Depth pixel_decoder
+    DEPTH_RESOLUTION_FULL: False # full resolution vs 1/4 resolution
+    WITH_MEAN: False # d' = sigmoid(d) * mean
+    LEARN_MEAN: False
+    DEPTH_TO_SEMANTIC: False # Query_{i+1} = Query_{i} + D_Query{i}
+    LATENT_LAYERS: 9
+    TRAIN_LAYERS: [0, 1, 2, 3, 4, 5, 6, 7, 8] # Training # layers
+    DEPTH_MULTISCALE: False
+    UNCERTAINTY: False
+    CNN_DEPTH: False # U-Net Depth Decoder
+    TRAIN_DEPTH: True
+    TEST:
+      SEMANTIC_ON: False
+      INSTANCE_ON: False
+      PANOPTIC_ON: True
+      OVERLAP_THRESHOLD: 0.8
+      OBJECT_MASK_THRESHOLD: 0.8
+      POST_PROCESS: "pixel"
+      # POST_PROCESS: "mask"
+DATASETS:
+  TRAIN: ("cityscapes_dvps_train",)
+  TEST: ("cityscapes_dvps_val",)
+SOLVER:
+  IMS_PER_BATCH: 2
+  BASE_LR: 0.0001
+  MAX_ITER: 50000
+  WARMUP_FACTOR: 0.1
+  WARMUP_ITERS: 2000
+  WEIGHT_DECAY: 0.05
+  OPTIMIZER: "ADAMW"
+  LR_SCHEDULER_NAME: "WarmupPolyLR"
+  BACKBONE_MULTIPLIER: 0.1
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 0.01
+    NORM_TYPE: 2.0
+  AMP:
+    # ENABLED: True
+    ENABLED: False
+  CHECKPOINT_PERIOD: 500
+INPUT:
+  # MIN_SIZE_TRAIN: !!python/object/apply:eval ["[int(x * 0.1 * 1024) for x in range(5, 21)]"]
+  MIN_SIZE_TRAIN: (512, 768, 1024, 1152, 1216, 1344, 1408, 1536, 1664, 1728, 1856, 1920, 2048)
+  # MIN_SIZE_TRAIN: (1024, 1152, 1216, 1344, 1408, 1536, 1664, 1728, 1856, 1920, 2048)
+  # MIN_SIZE_TRAIN: (1024, 1024)
+  MIN_SIZE_TRAIN_SAMPLING: "choice"
+  MIN_SIZE_TEST: 1024
+  MAX_SIZE_TRAIN: 4096
+  MAX_SIZE_TEST: 2048
+  CROP:
+    ENABLED: True
+    # ENABLED: False
+    TYPE: "absolute"
+    SIZE: (512, 1024)
+    # SIZE: (256, 512)
+    # SIZE: (128, 256)
+    SINGLE_CATEGORY_MAX_AREA: 1.0
+  COLOR_AUG_SSD: True
+  SIZE_DIVISIBILITY: -1
+  FORMAT: "RGB"
+  # DATASET_MAPPER_NAME: "mask_former_panoptic"
+  DATASET_MAPPER_NAME: "mask_former_panoptic_dvps"
+TEST:
+  EVAL_PERIOD: 500
+  AUG:
+    ENABLED: False
+    MIN_SIZES: [512, 768, 1024, 1280, 1536, 1792]
+    MAX_SIZE: 4096
+    FLIP: True
+DATALOADER:
+  FILTER_EMPTY_ANNOTATIONS: True
+  NUM_WORKERS: 4
+CUDNN_BENCHMARK: True
+VERSION: 2
+OUTPUT_DIR: "./output/city-dvps/"

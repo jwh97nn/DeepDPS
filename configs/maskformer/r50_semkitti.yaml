@@ -1,0 +1,66 @@
+_BASE_: r50.yaml
+MODEL:
+  # WEIGHTS: "output/mask2former/deform2/model_0021999.pth"
+  # WEIGHTS: "output/city-dvps/129/model_0013999.pth"
+  WEIGHTS: "model/weights/model_final_4e9874.pkl"
+  # WEIGHTS: "output/kitti-dvps/21/model_0000499.pth"
+  SEM_SEG_HEAD:
+    # IGNORE_VALUE: 65
+    # NUM_CLASSES: 65
+    NUM_CLASSES: 19
+  MASK_FORMER:
+    DEPTH_RESOLUTION_FULL: True
+    # BACKUP_TOKEN: True
+    BACKUP_TOKEN: False
+    # DEPTH_DECODER: True
+    DEPTH_DECODER: False
+    # TRAIN_DEPTH: True
+    TRAIN_DEPTH: False
+    # TRANSFER_CITYSCAPES: True
+    TRANSFER_CITYSCAPES: False
+    # TRANSFER_MV: True
+    TEST:
+      OVERLAP_THRESHOLD: 0.0
+      OBJECT_MASK_THRESHOLD: 0.0
+      # OVERLAP_THRESHOLD: 0.8
+      # OBJECT_MASK_THRESHOLD: 0.0
+      POST_PROCESS: "pixel"
+      # POST_PROCESS: "mask"
+DATASETS:
+  TRAIN: ("semkitti_dvps_train",)
+  TEST: ("semkitti_dvps_val",)
+SOLVER:
+  # IMS_PER_BATCH: 4
+  IMS_PER_BATCH: 2
+  BASE_LR: 0.0001
+  AMP:
+    # ENABLED: True
+    ENABLED: False
+  CHECKPOINT_PERIOD: 500
+INPUT:
+  # MIN_SIZE_TRAIN: !!python/object/apply:eval ["[int(x * 0.1 * 384) for x in range(5, 21)]"]
+  # MIN_SIZE_TRAIN: (512, 768, 1024, 1152, 1216, 1344, 1408, 1536, 1664, 1728, 1856, 1920, 2048)
+  # MIN_SIZE_TRAIN: (1024, 1152, 1216, 1344, 1408, 1536, 1664, 1728, 1856, 1920, 2048)
+  # MIN_SIZE_TRAIN: (1024, 1024)
+  # MIN_SIZE_TRAIN: (388, 426, 466, 504, 544, 582, 620, 660)
+  MIN_SIZE_TRAIN: (388, 388)
+  MIN_SIZE_TRAIN_SAMPLING: "choice"
+  MAX_SIZE_TRAIN: 2800
+  MIN_SIZE_TEST: 384
+  MAX_SIZE_TEST: 1280
+  CROP:
+    ENABLED: True
+    # ENABLED: False
+    TYPE: "absolute"
+    SIZE: (384, 1280)
+    # SIZE: (192, 640)
+    SINGLE_CATEGORY_MAX_AREA: 1.0
+  COLOR_AUG_SSD: True
+  SIZE_DIVISIBILITY: -1
+  FORMAT: "RGB"
+  DATASET_MAPPER_NAME: "mask_former_panoptic_semkitti_dvps"
+TEST:
+  EVAL_PERIOD: 500
+DATALOADER:
+  NUM_WORKERS: 1
+OUTPUT_DIR: "./output/semkitti/1"
